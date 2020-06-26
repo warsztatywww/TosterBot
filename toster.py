@@ -62,7 +62,7 @@ class Toster:
         self._save_state()
 
 
-toster = Toster()
+toster = Toster('toster_state.json')
 
 @client.event
 async def on_ready():
