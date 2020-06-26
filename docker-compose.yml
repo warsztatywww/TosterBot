@@ -3,5 +3,7 @@ version: '2'
 services:
   toster:
     build: .
+    stdin_open: true
+    tty: true
     environment:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
