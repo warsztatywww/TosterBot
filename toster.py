@@ -102,7 +102,7 @@ async def on_message(message):
                 await message.channel.send('Toster jest jeszcze względnie czysty?!')
             else:
                 await message.channel.send('Toster jest idealnie czysty?!?!')
-        elif wordsearch('(umyj|wyczyść)', message.content):
+        elif any(wordsearch(w, message.content) for w in ('umyj', 'wyczyść')):
             if toster.is_dirty_at_all():
                 toster.clean()
                 if toster.is_really_dirty():
@@ -113,13 +113,13 @@ async def on_message(message):
                     await message.channel.send('Toster jest teraz idealnie czysty?!?!', file=discord.File('toster_czyszczenie.gif'))
             else:
                 await message.channel.send('Toster już był idealnie czysty!')
-        elif wordsearch('(włącz|on)', message.content):
+        elif any(wordsearch(w, message.content) for w in ('włącz', 'on')):
             try:
                 toster.run()
                 await message.channel.send('Włączam toster')
             except RuntimeError:
                 await message.channel.send('Toster jest już włączony!!')
-        elif wordsearch('(wyłącz|off)', message.content):
+        elif any(wordsearch(w, message.content) for w in ('wyłącz', 'off')):
             try:
                 toasting_time = toster.stop()
                 if toasting_time < TOASTING_LOW_THRESHOLD:
