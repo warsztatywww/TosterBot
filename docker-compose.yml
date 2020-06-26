@@ -11,4 +11,4 @@ services:
     environment:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
     volumes:
-      - toster_state:/toster_state.json:rw
+      - toster_state:/data:rw
