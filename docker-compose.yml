@@ -1,5 +1,8 @@
 version: '2'
 
+volumes:
+  toster_state:
+
 services:
   toster:
     build: .
@@ -7,3 +10,5 @@ services:
     tty: true
     environment:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
+    volumes:
+      - toster_state:/data:rw
