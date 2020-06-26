@@ -18,12 +18,20 @@ class Toster:
         try:
             with open(backup_file) as backup:
                 j = json.load(backup)
-                self.start_time = j.start_time
-                self.toster_dirty = j.toster_dirty
-        except:
+                self.start_time = j["start_time"]
+                self.toster_dirty = j["toster_dirty"]
+        except FileNotFoundError as e:
+            print(f"file {backup_file} doesn't exist: initializing new backup")
             self.start_time = None
             self.toster_dirty = 0
             self._save_state()
+        except KeyError as e:
+            print(f"file {backup_file} is corrupted: initializing new backup")
+            self.start_time = None
+            self.toster_dirty = 0
+            self._save_state()
+        # on other types of exceptions, application will just crash
+
 
     def _save_state(self):
         with open(self.backup_file, 'w') as f:
@@ -57,12 +65,12 @@ class Toster:
     def is_dirty_at_all(self):
         return self.toster_dirty > 0
 
-    def clean(self):
-        self.toster_dirty = max(self.toster_dirty - 3 * 60, 0)
+    def clean(self, amount=3*60):
+        self.toster_dirty = max(self.toster_dirty - amount, 0)
         self._save_state()
 
 
-toster = Toster('toster_state.json')
+toster = Toster('/toster_state.json')
 
 @client.event
 async def on_ready():
