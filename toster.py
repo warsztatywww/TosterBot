@@ -2,6 +2,7 @@
 import discord
 import time
 import os
+import random
 
 client = discord.Client()
 
@@ -11,6 +12,7 @@ toster_dirty = 0
 DIRTY_THRESHOLD = 10 * 60
 TOASTING_LOW_THRESHOLD = 60
 TOASTING_HIGH_THRESHOLD = 120
+SMOKING_GOOD_TOAST_CHANCES = 0.1
 
 @client.event
 async def on_ready():
@@ -64,6 +66,8 @@ async def on_message(message):
                                     await message.channel.send('{0.mention} Twój tost jest idealny!'.format(message.author), file=discord.File('tost_dobry.gif'))
                                         if toster_dirty >= DIRTY_THRESHOLD:
                                             await message.channel.send('(tylko toster był tak trochę brudny...')
+                                elif random.random() < SMOKING_GOOD_TOAST_CHANCES:
+                                    await message.channel.send('{0.mention} This toast is smoking good!'.format(message.author), file=discord.file('tost_smoking_good.jpg'))
                                 else:
                                     await message.channel.send('{0.mention} Twój tost jest spalony!!'.format(message.author), file=discord.File('tost_spalony.jpg'))
                         else:
