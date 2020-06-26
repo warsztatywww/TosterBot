@@ -65,7 +65,7 @@ async def on_message(message):
                 elif toasting_time < TOASTING_HIGH_THRESHOLD:
                     await message.channel.send('{0.mention} Twój tost jest idealny!'.format(message.author), file=discord.File('tost_dobry.gif'))
                     if toster_dirty >= DIRTY_THRESHOLD:
-                        await message.channel.send('(tylko toster był tak trochę brudny...')
+                        await message.channel.send('(tylko toster był tak trochę brudny...)')
                 elif random.random() < SMOKING_GOOD_TOAST_CHANCES:
                     await message.channel.send('{0.mention} This toast is smoking good!'.format(message.author), file=discord.file('tost_smoking_good.jpg'))
                 else:
