@@ -137,7 +137,7 @@ async def on_message(message):
         else:
             await message.channel.send('beep boop, jak będziesz źle obsługiwał toster to wywalisz korki')
 
-    if all(wordsearch(w, message.content) for w in ('czy', 'ser', '?')):
+    if all(wordsearch(w, message.content) for w in ('czy', 'ser')):
         await message.channel.send('{0.mention} Oczywiście że jest! Sera dla uczestników nigdy nie braknie'.format(message.author))
 
 client.run(os.environ['DISCORD_TOKEN'])
