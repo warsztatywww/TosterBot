@@ -3,6 +3,7 @@ import discord
 import time
 import os
 import random
+import re
 import json
 
 client = discord.Client()
@@ -11,6 +12,11 @@ DIRTY_THRESHOLD = 10 * 60
 TOASTING_LOW_THRESHOLD = 60
 TOASTING_HIGH_THRESHOLD = 120
 SMOKING_GOOD_TOAST_CHANCES = 0.1
+
+
+def wordsearch(word: str, msg: str, flags: int = re.I) -> bool:
+    return re.search(r'\b' + word + r'\b', msg, flags) is not None
+
 
 class Toster:
     def __init__(self, backup_file):
@@ -84,19 +90,19 @@ async def on_message(message):
         return
 
     if client.user in message.mentions:
-        if 'czy' in message.content.lower() and 'włączony' in message.content.lower():
+        if all(wordsearch(w, message.content) for w in ('czy', 'on')):
             if toster.is_running():
                 await message.channel.send('Toster jest włączony')
             else:
                 await message.channel.send('Toster nie jest włączony')
-        elif 'czy' in message.content.lower() and 'brudny' in message.content.lower():
+        elif all(wordsearch(w, message.content) for w in ('czy', 'brudny')):
             if toster.is_really_dirty():
                 await message.channel.send('Toster jest brudny!')
             elif toster.is_dirty_at_all():
                 await message.channel.send('Toster jest jeszcze względnie czysty?!')
             else:
                 await message.channel.send('Toster jest idealnie czysty?!?!')
-        elif 'umyj' in message.content.lower() or 'wyczyść' in message.content.lower():
+        elif any(wordsearch(w, message.content) for w in ('umyj', 'wyczyść')):
             if toster.is_dirty_at_all():
                 toster.clean()
                 if toster.is_really_dirty():
@@ -107,13 +113,13 @@ async def on_message(message):
                     await message.channel.send('Toster jest teraz idealnie czysty?!?!', file=discord.File('toster_czyszczenie.gif'))
             else:
                 await message.channel.send('Toster już był idealnie czysty!')
-        elif 'włącz' in message.content.lower() or 'on' in message.content.lower():
+        elif any(wordsearch(w, message.content) for w in ('włącz', 'on')):
             try:
                 toster.run()
                 await message.channel.send('Włączam toster')
             except RuntimeError:
                 await message.channel.send('Toster jest już włączony!!')
-        elif 'wyłącz' in message.content.lower() or 'off' in message.content.lower():
+        elif any(wordsearch(w, message.content) for w in ('wyłącz', 'off')):
             try:
                 toasting_time = toster.stop()
                 if toasting_time < TOASTING_LOW_THRESHOLD:
@@ -131,7 +137,7 @@ async def on_message(message):
         else:
             await message.channel.send('beep boop, jak będziesz źle obsługiwał toster to wywalisz korki')
 
-    if 'czy' in message.content.lower() and 'ser' in message.content.lower() and '?' in message.content.lower():
+    if all(wordsearch(w, message.content) for w in ('czy', 'ser', '?')):
         await message.channel.send('{0.mention} Oczywiście że jest! Sera dla uczestników nigdy nie braknie'.format(message.author))
 
 client.run(os.environ['DISCORD_TOKEN'])
