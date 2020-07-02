@@ -47,7 +47,7 @@ class Toster:
 
     def _verify_user_near_toster(self, user):
         near_toster_users = self.near_toster_channel.members
-        is_near_toster = any(user.id == us.id for us in near_toster_users)
+        is_near_toster = user in near_toster_users
         if not is_near_toster:
             raise TosterOopsie('Musisz podejść do tostera!!')
 
