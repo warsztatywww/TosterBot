@@ -18,9 +18,15 @@ def wordsearch(word: str, msg: str, flags: int = re.I) -> bool:
     return re.search(r'\b' + word + r'\b', msg, flags) is not None
 
 
+class TosterOopsie(RuntimeError):
+    pass
+
+
 class Toster:
     def __init__(self, backup_file):
         self.backup_file = backup_file
+        self.guild = client.get_guild(297446629890457601)
+        self.near_toster_channel = self.guild.get_channel(716707113401057430)
         try:
             with open(backup_file) as backup:
                 j = json.load(backup)
@@ -39,6 +45,12 @@ class Toster:
         # on other types of exceptions, application will just crash
 
 
+    def _verify_user_near_toster(self, user):
+        near_toster_users = self.near_toster_channel.members
+        is_near_toster = user in near_toster_users
+        if not is_near_toster:
+            raise TosterOopsie('Musisz podejść do tostera!!')
+
     def _save_state(self):
         with open(self.backup_file, 'w') as f:
             state = {
@@ -50,15 +62,17 @@ class Toster:
     def is_running(self):
         return self.start_time is not None
 
-    def run(self):
+    def run(self, user):
+        self._verify_user_near_toster(user)
         if self.is_running():
-            raise RuntimeError('Toster jest włączony')
+            raise TosterOopsie('Toster jest już włączony!!')
         self.start_time = time.time()
         self._save_state()
 
-    def stop(self):
+    def stop(self, user):
+        self._verify_user_near_toster(user)
         if not self.is_running():
-            raise RuntimeError('Toster jest wyłączony')
+            raise TosterOopsie('Toster nie jest włączony!!')
         toasting_time = time.time() - self.start_time
         self.toster_dirty += toasting_time
         self.start_time = None
@@ -71,7 +85,8 @@ class Toster:
     def is_dirty_at_all(self):
         return self.toster_dirty > 0
 
-    def clean(self, amount=3*60):
+    def clean(self, user, *, amount=3*60):
+        self._verify_user_near_toster(user)
         if self.is_running():
             raise RuntimeError('Toster jest włączony')
         self.toster_dirty = max(self.toster_dirty - amount, 0)
@@ -92,38 +107,35 @@ async def on_message(message):
         return
 
     if client.user in message.mentions:
-        if all(wordsearch(w, message.content) for w in ('czy', 'on')):
-            if toster.is_running():
-                await message.channel.send('Toster jest włączony')
-            else:
-                await message.channel.send('Toster nie jest włączony')
-        elif all(wordsearch(w, message.content) for w in ('czy', 'brudny')):
-            if toster.is_really_dirty():
-                await message.channel.send('Toster jest brudny!')
-            elif toster.is_dirty_at_all():
-                await message.channel.send('Toster jest jeszcze względnie czysty?!')
-            else:
-                await message.channel.send('Toster jest idealnie czysty?!?!')
-        elif any(wordsearch(w, message.content) for w in ('umyj', 'wyczyść')):
-            if toster.is_dirty_at_all():
-                toster.clean()
-                if toster.is_really_dirty():
-                    await message.channel.send('Toster jest nadal brudny!')
-                elif toster.is_dirty_at_all():
-                    await message.channel.send('Toster jest już względnie czysty')
+        try:
+            if all(wordsearch(w, message.content) for w in ('czy', 'on')):
+                if toster.is_running():
+                    await message.channel.send('Toster jest włączony')
                 else:
-                    await message.channel.send('Toster jest teraz idealnie czysty?!?!', file=discord.File('toster_czyszczenie.gif'))
-            else:
-                await message.channel.send('Toster już był idealnie czysty!')
-        elif any(wordsearch(w, message.content) for w in ('włącz', 'on')):
-            try:
-                toster.run()
+                    await message.channel.send('Toster nie jest włączony')
+            elif all(wordsearch(w, message.content) for w in ('czy', 'brudny')):
+                if toster.is_really_dirty():
+                    await message.channel.send('Toster jest brudny!')
+                elif toster.is_dirty_at_all():
+                    await message.channel.send('Toster jest jeszcze względnie czysty?!')
+                else:
+                    await message.channel.send('Toster jest idealnie czysty?!?!')
+            elif any(wordsearch(w, message.content) for w in ('umyj', 'wyczyść')):
+                if toster.is_dirty_at_all():
+                    toster.clean(message.author)
+                    if toster.is_really_dirty():
+                        await message.channel.send('Toster jest nadal brudny!')
+                    elif toster.is_dirty_at_all():
+                        await message.channel.send('Toster jest już względnie czysty')
+                    else:
+                        await message.channel.send('Toster jest teraz idealnie czysty?!?!', file=discord.File('toster_czyszczenie.gif'))
+                else:
+                    await message.channel.send('Toster już był idealnie czysty!')
+            elif any(wordsearch(w, message.content) for w in ('włącz', 'on')):
+                toster.run(message.author)
                 await message.channel.send('Włączam toster')
-            except RuntimeError:
-                await message.channel.send('Toster jest już włączony!!')
-        elif any(wordsearch(w, message.content) for w in ('wyłącz', 'off')):
-            try:
-                toasting_time = toster.stop()
+            elif any(wordsearch(w, message.content) for w in ('wyłącz', 'off')):
+                toasting_time = toster.stop(message.author)
                 if toasting_time < TOASTING_LOW_THRESHOLD:
                     await message.channel.send('{0.mention} Twój tost jest niedopieczony!'.format(message.author), file=discord.File('tost_slaby.jpg'))
                 elif toasting_time < TOASTING_HIGH_THRESHOLD:
@@ -134,10 +146,10 @@ async def on_message(message):
                     await message.channel.send('{0.mention} This toast is smoking good!'.format(message.author), file=discord.File('tost_smoking_good.jpg'))
                 else:
                     await message.channel.send('{0.mention} Twój tost jest spalony!!'.format(message.author), file=discord.File('tost_spalony.jpg'))
-            except RuntimeError:
-                await message.channel.send('Toster nie jest włączony!')
-        else:
-            await message.channel.send('beep boop, jak będziesz źle obsługiwał toster to wywalisz korki')
+            else:
+                await message.channel.send('beep boop, jak będziesz źle obsługiwał toster to wywalisz korki')
+        except TosterOopsie as e:
+            await message.channel.send(e.args[0])
 
     if all(wordsearch(w, message.content) for w in ('czy', 'ser')):
         await message.channel.send('{0.mention} Oczywiście że jest! Sera dla uczestników nigdy nie braknie'.format(message.author))
