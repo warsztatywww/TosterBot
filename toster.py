@@ -72,6 +72,8 @@ class Toster:
         return self.toster_dirty > 0
 
     def clean(self, amount=3*60):
+        if self.is_running():
+            raise RuntimeError('Toster jest włączony')
         self.toster_dirty = max(self.toster_dirty - amount, 0)
         self._save_state()
 
