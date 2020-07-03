@@ -88,7 +88,7 @@ class Toster:
     def clean(self, user, *, amount=3*60):
         self._verify_user_near_toster(user)
         if self.is_running():
-            raise RuntimeError('Toster jest włączony')
+            raise TosterOopsie('Toster jest włączony')
         self.toster_dirty = max(self.toster_dirty - amount, 0)
         self._save_state()
 
