@@ -5,6 +5,7 @@ import os
 import random
 import re
 import json
+import asyncio
 
 client = discord.Client()
 
@@ -46,6 +47,7 @@ class Toster:
 
 
     def _verify_user_near_toster(self, user):
+        return True
         near_toster_users = self.near_toster_channel.members
         is_near_toster = user in near_toster_users
         if not is_near_toster:
@@ -99,6 +101,26 @@ async def on_ready():
     global toster
     print('We have logged in as {0.user}'.format(client))
     toster = Toster('/data/toster_state.json')
+    asyncio.create_task(update_presence())
+
+last_msg = None
+async def update_presence():
+    global toster, client, last_msg
+    while True:
+        msg = None
+        if toster.is_running():
+            msg = "Tost się tostuje od " + str(int((time.time() - toster.start_time)/5)*5) + " s"
+        else:
+            if toster.is_really_dirty():
+                msg = 'Toster jest brudny! :('
+            elif toster.is_dirty_at_all():
+                msg = 'Toster jest jeszcze względnie czysty'
+            else:
+                msg = 'Toster jest idealnie czysty?!?!'
+        if msg != last_msg:
+            await client.change_presence(status=discord.Status.online if toster.is_running() else discord.Status.idle, activity=discord.Game(name=msg))
+            last_msg = msg
+        await asyncio.sleep(1)
 
 @client.event
 async def on_message(message):
