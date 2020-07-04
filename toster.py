@@ -47,7 +47,6 @@ class Toster:
 
 
     def _verify_user_near_toster(self, user):
-        return True
         near_toster_users = self.near_toster_channel.members
         is_near_toster = user in near_toster_users
         if not is_near_toster:
@@ -109,7 +108,7 @@ async def update_presence():
     while True:
         msg = None
         if toster.is_running():
-            msg = "🍞 Tost się tostuje od " + str(int((time.time() - toster.start_time)/5)*5) + " s"
+            msg = "Tost się tostuje od " + str(int((time.time() - toster.start_time)/5)*5) + " s 🍞"
         else:
             if toster.is_really_dirty():
                 msg = 'Toster jest brudny! :('
