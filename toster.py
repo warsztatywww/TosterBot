@@ -109,7 +109,7 @@ async def update_presence():
     while True:
         msg = None
         if toster.is_running():
-            msg = "Tost się tostuje od " + str(int((time.time() - toster.start_time)/5)*5) + " s"
+            msg = "🍞 Tost się tostuje od " + str(int((time.time() - toster.start_time)/5)*5) + " s"
         else:
             if toster.is_really_dirty():
                 msg = 'Toster jest brudny! :('
