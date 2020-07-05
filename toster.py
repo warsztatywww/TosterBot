@@ -13,6 +13,7 @@ DIRTY_THRESHOLD = 10 * 60
 TOASTING_LOW_THRESHOLD = 60
 TOASTING_HIGH_THRESHOLD = 120
 SMOKING_GOOD_TOAST_CHANCES = 0.1
+USERS_WITH_TOASTS = {}
 
 
 def wordsearch(word: str, msg: str, flags: int = re.I) -> bool:
@@ -160,14 +161,46 @@ async def on_message(message):
                 toasting_time = toster.stop(message.author)
                 if toasting_time < TOASTING_LOW_THRESHOLD:
                     await message.channel.send('{0.mention} Twój tost jest niedopieczony!'.format(message.author), file=discord.File('tost_slaby.jpg'))
+                    USERS_WITH_TOASTS[message.author] = 'niedopieczony'
                 elif toasting_time < TOASTING_HIGH_THRESHOLD:
                     await message.channel.send('{0.mention} Twój tost jest idealny!'.format(message.author), file=discord.File('tost_dobry.gif'))
+                    USERS_WITH_TOASTS[message.author] = 'idealny'
                     if toster.is_really_dirty():
                         await message.channel.send('(tylko toster był tak trochę brudny...)')
                 elif random.random() < SMOKING_GOOD_TOAST_CHANCES:
                     await message.channel.send('{0.mention} This toast is smoking good!'.format(message.author), file=discord.File('tost_smoking_good.jpg'))
+                    USERS_WITH_TOASTS[message.author] = 'smoking good'
                 else:
                     await message.channel.send('{0.mention} Twój tost jest spalony!!'.format(message.author), file=discord.File('tost_spalony.jpg'))
+                    USERS_WITH_TOASTS[message.author] = 'spalony'
+
+            elif any(wordsearch(w,message.content) for w in ("oddaj","give", "daj", "przekaż")): 
+                if message.author in USERS_WITH_TOASTS.keys(): 
+                    if len(message.mentions) > 1:
+                        gifted_user = message.mentions
+                        gifted_user.remove(client.user)
+                        gifted_user = gifted_user[0]
+                        await message.channel.send('{0.mention} oddałeś swojego tosta {0.mention}'.format(message.author,gifted_user)) 
+                        await gifted_user.create_dm()
+                        await gifted_user.dm_channel.send('{0.mention} upiekł dla ciebie tosta!!!'.format(message.author))
+            
+                        if USERS_WITH_TOASTS[message.author] == 'niedopieczony':
+                            await gifted_user.dm_channel.send("Tost jest niedopieczony!", file=discord.File('tost_slaby.jpg'))
+                        elif USERS_WITH_TOASTS[message.author] == 'idealny':
+                            await gifted_user.dm_channel.send("Tost jest idealny!", file=discord.File('tost_dobry.gif'))
+                        elif USERS_WITH_TOASTS[message.author] == 'smoking good':
+                            await gifted_user.dm_channel.send("This toast is smoking good!", file=discord.File('tost_smoking_good.jpg'))
+                        else:
+                            await gifted_user.dm_channel.send("Tost jest spalony!!", file=discord.File('tost_spalony.jpg'))
+                        USERS_WITH_TOASTS[gifted_user] = USERS_WITH_TOASTS[message.author]
+                        del USERS_WITH_TOASTS[message.author]
+                    else:
+                        await message.channel.send("{0.mention} nie podałeś komu chcesz oddać tosta".format(message.author)) 
+
+                
+                else: 
+                    await message.channel.send('{0.mention} nie masz żadnego tosta'.format(message.author)) 
+
             else:
                 await message.channel.send('beep boop, jak będziesz źle obsługiwał toster to wywalisz korki')
         except TosterOopsie as e:
