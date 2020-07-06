@@ -13,7 +13,7 @@ DIRTY_THRESHOLD = 10 * 60
 TOASTING_LOW_THRESHOLD = 60
 TOASTING_HIGH_THRESHOLD = 120
 SMOKING_GOOD_TOAST_CHANCES = 0.1
-USERS_WITH_TOASTS = {}
+TOAST_STORAGE_TIMEOUT = 10 * 60
 
 
 def wordsearch(word: str, msg: str, flags: int = re.I) -> bool:
@@ -27,22 +27,25 @@ class TosterOopsie(RuntimeError):
 class Toster:
     def __init__(self, backup_file):
         self.backup_file = backup_file
-        self.guild = client.get_guild(297446629890457601)
-        self.near_toster_channel = self.guild.get_channel(716707113401057430)
+        self.guild = client.get_guild(729268066306883594)
+        self.near_toster_channel = self.guild.get_channel(729268066306883598)
         try:
             with open(backup_file) as backup:
                 j = json.load(backup)
                 self.start_time = j["start_time"]
                 self.toster_dirty = j["toster_dirty"]
+                self.users_with_toasts = j["users_with_toasts"]
         except FileNotFoundError as e:
             print(f"file {backup_file} doesn't exist: initializing new backup")
             self.start_time = None
             self.toster_dirty = 0
+            self.users_with_toasts = {}
             self._save_state()
         except KeyError as e:
             print(f"file {backup_file} is corrupted: initializing new backup")
             self.start_time = None
             self.toster_dirty = 0
+            self.users_with_toasts = {}
             self._save_state()
         # on other types of exceptions, application will just crash
 
@@ -57,7 +60,8 @@ class Toster:
         with open(self.backup_file, 'w') as f:
             state = {
                     "toster_dirty": self.toster_dirty,
-                    "start_time": self.start_time
+                    "start_time": self.start_time,
+                    "users_with_toasts": self.users_with_toasts
             }
             json.dump(state, f)
 
@@ -92,6 +96,13 @@ class Toster:
         if self.is_running():
             raise TosterOopsie('Toster jest włączony')
         self.toster_dirty = max(self.toster_dirty - amount, 0)
+        self._save_state()
+
+    def update_users_data(self):
+        for user in self.users_with_toasts.keys():
+            for toast in self.users_with_toasts[user]:
+                if time.time() - toast[1] > TOAST_STORAGE_TIMEOUT:
+                    self.users_with_toasts[user].remove(toast)
         self._save_state()
 
 toster = None
@@ -159,47 +170,79 @@ async def on_message(message):
                 await message.channel.send('Włączam toster')
             elif any(wordsearch(w, message.content) for w in ('wyłącz', 'off')):
                 toasting_time = toster.stop(message.author)
+                if str(message.author) not in toster.users_with_toasts.keys():
+                    toster.users_with_toasts[str(message.author)] = []
                 if toasting_time < TOASTING_LOW_THRESHOLD:
                     await message.channel.send('{0.mention} Twój tost jest niedopieczony!'.format(message.author), file=discord.File('tost_slaby.jpg'))
-                    USERS_WITH_TOASTS[message.author] = 'niedopieczony'
+                    toster.users_with_toasts[str(message.author)].append(['niedopieczony',time.time()])
                 elif toasting_time < TOASTING_HIGH_THRESHOLD:
                     await message.channel.send('{0.mention} Twój tost jest idealny!'.format(message.author), file=discord.File('tost_dobry.gif'))
-                    USERS_WITH_TOASTS[message.author] = 'idealny'
+                    toster.users_with_toasts[str(message.author)].append(['idealny', time.time()])
                     if toster.is_really_dirty():
                         await message.channel.send('(tylko toster był tak trochę brudny...)')
                 elif random.random() < SMOKING_GOOD_TOAST_CHANCES:
                     await message.channel.send('{0.mention} This toast is smoking good!'.format(message.author), file=discord.File('tost_smoking_good.jpg'))
-                    USERS_WITH_TOASTS[message.author] = 'smoking good'
+                    toster.users_with_toasts[str(message.author)].append(['smoking good', time.time()])
                 else:
                     await message.channel.send('{0.mention} Twój tost jest spalony!!'.format(message.author), file=discord.File('tost_spalony.jpg'))
-                    USERS_WITH_TOASTS[message.author] = 'spalony'
-
+                    toster.users_with_toasts[str(message.author)].append(['spalony', time.time()])
+                toster.update_users_data()
             elif any(wordsearch(w,message.content) for w in ("oddaj","give", "daj", "przekaż")): 
-                if message.author in USERS_WITH_TOASTS.keys(): 
+                toster.update_users_data()
+                if str(message.author) in toster.users_with_toasts.keys() and len(toster.users_with_toasts[str(message.author)]) >= len(message.mentions) - 1: 
+                    print(message.mentions)
                     if len(message.mentions) > 1:
-                        gifted_user = message.mentions
-                        gifted_user.remove(client.user)
-                        gifted_user = gifted_user[0]
-                        await message.channel.send('{0.mention} oddałeś swojego tosta {0.mention}'.format(message.author,gifted_user)) 
-                        await gifted_user.create_dm()
-                        await gifted_user.dm_channel.send('{0.mention} upiekł dla ciebie tosta!!!'.format(message.author))
-            
-                        if USERS_WITH_TOASTS[message.author] == 'niedopieczony':
-                            await gifted_user.dm_channel.send("Tost jest niedopieczony!", file=discord.File('tost_slaby.jpg'))
-                        elif USERS_WITH_TOASTS[message.author] == 'idealny':
-                            await gifted_user.dm_channel.send("Tost jest idealny!", file=discord.File('tost_dobry.gif'))
-                        elif USERS_WITH_TOASTS[message.author] == 'smoking good':
-                            await gifted_user.dm_channel.send("This toast is smoking good!", file=discord.File('tost_smoking_good.jpg'))
+                        gifted_users = message.mentions
+                        gifted_users.remove(client.user)
+                        if len(gifted_users) == 1:
+                            mess = '{0.mention} oddałeś swojego tosta {0.mention}'
                         else:
-                            await gifted_user.dm_channel.send("Tost jest spalony!!", file=discord.File('tost_spalony.jpg'))
-                        USERS_WITH_TOASTS[gifted_user] = USERS_WITH_TOASTS[message.author]
-                        del USERS_WITH_TOASTS[message.author]
+                            mess = '{0.mention} oddałeś swojego tosta ' + "{0.mention}, " * max((len(gifted_users) - 2),0) + "{0.mention} i {0.mention}"
+                        mess = mess.format(message.author)
+                        for gifted_user in gifted_users:
+                            mess = mess.format(gifted_user)
+                        await message.channel.send(mess) 
+                        for gifted_user in gifted_users:
+                            tost = toster.users_with_toasts[str(message.author)].pop(0)
+                            await gifted_user.send('{0.mention} upiekł dla ciebie tosta!!!'.format(message.author))
+                            if tost[0] == 'niedopieczony':
+                                await gifted_user.send("Tost jest niedopieczony!", file=discord.File('tost_slaby.jpg'))
+                            elif tost[0] == 'idealny':
+                                await gifted_user.send("Tost jest idealny!", file=discord.File('tost_dobry.gif'))
+                            elif tost[0] == 'smoking good':
+                                await gifted_user.send("This toast is smoking good!", file=discord.File('tost_smoking_good.jpg'))
+                            else:
+                                await gifted_user.send("Tost jest spalony!!", file=discord.File('tost_spalony.jpg'))
+                            if not str(gifted_user) in toster.users_with_toasts.keys():
+                                toster.users_with_toasts[str(gifted_user)] = []
+                            toster.users_with_toasts[str(gifted_user)].append(tost)
+                        toster.update_users_data()
                     else:
                         await message.channel.send("{0.mention} nie podałeś komu chcesz oddać tosta".format(message.author)) 
 
                 
                 else: 
-                    await message.channel.send('{0.mention} nie masz żadnego tosta'.format(message.author)) 
+                    await message.channel.send('{0.mention} nie masz wystarczającej ilości tostów'.format(message.author)) 
+
+
+
+            elif all(wordsearch(w, message.content) for w in ('how','many')) or all(wordsearch(w, message.content) for w in ('ile','tostów')) or all(wordsearch(w, message.content) for w in ('czy','tosty')) :
+                toster.update_users_data()
+
+                if str(message.author) not in toster.users_with_toasts:
+                    await message.channel.send("Nie masz żadnych tostów")
+                else:
+                    tosty = len(toster.users_with_toasts[str(message.author)])
+                    mess = '{0.mention} masz '.format(message.author)
+                    if tosty == 1:
+                        mess += '1 tosta'
+                        
+                    elif tosty > 1 and tosty < 5:
+                        mess += "{} tosty".format(tosty)
+                    else:
+                        mess += "{} tostów".format(tosty)
+                    await message.channel.send(mess)
+        
 
             else:
                 await message.channel.send('beep boop, jak będziesz źle obsługiwał toster to wywalisz korki')
@@ -210,3 +253,5 @@ async def on_message(message):
         await message.channel.send('{0.mention} Oczywiście że jest! Sera dla uczestników nigdy nie braknie'.format(message.author))
 
 client.run(os.environ['DISCORD_TOKEN'])
+
+#TODO: sprawdzić czy można wywalić zapisywanie w którychś miejscach
