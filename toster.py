@@ -230,7 +230,7 @@ async def on_message(message):
                 toster.update_users_data()
 
                 if str(message.author) not in toster.users_with_toasts:
-                    await message.channel.send("Nie masz żadnych tostów")
+                    await message.channel.send("{0.mention} Nie masz żadnych tostów".format(message.author))
                 else:
                     tosty = len(toster.users_with_toasts[str(message.author)])
                     mess = '{0.mention} masz '.format(message.author)
