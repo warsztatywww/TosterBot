@@ -218,11 +218,11 @@ async def on_message(message):
                             toster.users_with_toasts[str(gifted_user)].append(tost)
                         toster.update_users_data()
                     else:
-                        await message.channel.send("{0.mention} nie podałeś komu chcesz oddać tosta".format(message.author)) 
+                        await message.channel.send("{0.mention} Nie podałeś komu chcesz oddać tosta!".format(message.author)) 
 
                 
                 else: 
-                    await message.channel.send('{0.mention} nie masz wystarczającej ilości tostów'.format(message.author)) 
+                    await message.channel.send('{0.mention} Nie masz wystarczającej ilości tostów!'.format(message.author)) 
 
 
 
@@ -230,7 +230,7 @@ async def on_message(message):
                 toster.update_users_data()
 
                 if str(message.author) not in toster.users_with_toasts:
-                    await message.channel.send("{0.mention} Nie masz żadnych tostów".format(message.author))
+                    await message.channel.send("{0.mention} Nie masz żadnych tostów!".format(message.author))
                 else:
                     tosty = len(toster.users_with_toasts[str(message.author)])
                     mess = '{0.mention} masz '.format(message.author)
