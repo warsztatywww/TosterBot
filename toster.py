@@ -27,8 +27,8 @@ class TosterOopsie(RuntimeError):
 class Toster:
     def __init__(self, backup_file):
         self.backup_file = backup_file
-        self.guild = client.get_guild(729268066306883594)
-        self.near_toster_channel = self.guild.get_channel(729268066306883598)
+        self.guild = client.get_guild(297446629890457601)
+        self.near_toster_channel = self.guild.get_channel(716707113401057430)
         try:
             with open(backup_file) as backup:
                 j = json.load(backup)
