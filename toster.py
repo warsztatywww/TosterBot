@@ -36,13 +36,13 @@ class Toster:
                 self.toster_dirty = j["toster_dirty"]
                 self.users_with_toasts = j["users_with_toasts"]
         except FileNotFoundError as e:
-            print(f"file {backup_file} doesn't exist: initializing new backup")
+            #print(f"file {backup_file} doesn't exist: initializing new backup")
             self.start_time = None
             self.toster_dirty = 0
             self.users_with_toasts = {}
             self._save_state()
         except KeyError as e:
-            print(f"file {backup_file} is corrupted: initializing new backup")
+            #print(f"file {backup_file} is corrupted: initializing new backup")
             self.start_time = None
             self.toster_dirty = 0
             self.users_with_toasts = {}
@@ -110,7 +110,7 @@ toster = None
 @client.event
 async def on_ready():
     global toster
-    print('We have logged in as {0.user}'.format(client))
+    #print('We have logged in as {0.user}'.format(client))
     toster = Toster('/data/toster_state.json')
     asyncio.create_task(update_presence())
 
@@ -190,17 +190,15 @@ async def on_message(message):
             elif any(wordsearch(w,message.content) for w in ("oddaj","give", "daj", "przekaż")): 
                 toster.update_users_data()
                 if str(message.author) in toster.users_with_toasts.keys() and len(toster.users_with_toasts[str(message.author)]) >= len(message.mentions) - 1: 
-                    print(message.mentions)
                     if len(message.mentions) > 1:
                         gifted_users = message.mentions
                         gifted_users.remove(client.user)
-                        if len(gifted_users) == 1:
-                            mess = '{0.mention} oddałeś swojego tosta {0.mention}'
-                        else:
-                            mess = '{0.mention} oddałeś swojego tosta ' + "{0.mention}, " * max((len(gifted_users) - 2),0) + "{0.mention} i {0.mention}"
-                        mess = mess.format(message.author)
-                        for gifted_user in gifted_users:
-                            mess = mess.format(gifted_user)
+                        mess = message.author.mention + " oddałeś swojego tosta "
+                        mess += gifted_users[0].mention + " "
+                        for i in range(1,len(gifted_users) - 1):
+                            mess += gifted_users[i].mention + ", "
+                        if len(gifted_users) > 1:
+                            mess += "i " + gifted_users[-1].mention
                         await message.channel.send(mess) 
                         for gifted_user in gifted_users:
                             tost = toster.users_with_toasts[str(message.author)].pop(0)
@@ -253,5 +251,3 @@ async def on_message(message):
         await message.channel.send('{0.mention} Oczywiście że jest! Sera dla uczestników nigdy nie braknie'.format(message.author))
 
 client.run(os.environ['DISCORD_TOKEN'])
-
-#TODO: sprawdzić czy można wywalić zapisywanie w którychś miejscach
