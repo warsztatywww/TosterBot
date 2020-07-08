@@ -191,12 +191,13 @@ async def on_message(message):
                         gifted_users = message.mentions
                         gifted_users.remove(client.user)
                         mess = message.author.mention + " oddałeś swojego tosta "
-                        mess += gifted_users[0].mention + " "
+                        mess += gifted_users[0].mention
                         for i in range(1,len(gifted_users) - 1):
-                            mess += gifted_users[i].mention + ", "
+                            mess +=  ", " + gifted_users[i].mention
                         if len(gifted_users) > 1:
-                            mess += "i " + gifted_users[-1].mention
-                        await message.channel.send(mess) 
+                            mess += " i " + gifted_users[-1].mention
+                        await message.channel.send(mess)
+
                         for gifted_user in gifted_users:
                             tost = toster.users_with_toasts[str(message.author)].pop(0)
                             await gifted_user.send('{0.mention} upiekł dla ciebie tosta!!!'.format(message.author))
