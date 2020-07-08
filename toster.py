@@ -36,11 +36,13 @@ class Toster:
                 self.toster_dirty = j["toster_dirty"]
                 self.users_with_toasts = j["users_with_toasts"]
         except FileNotFoundError as e:
+            print(f"file {backup_file} doesn't exist: initializing new backup")
             self.start_time = None
             self.toster_dirty = 0
             self.users_with_toasts = {}
             self._save_state()
         except KeyError as e:
+            print(f"file {backup_file} is corrupted: initializing new backup")
             self.start_time = None
             self.toster_dirty = 0
             self.users_with_toasts = {}
@@ -108,6 +110,7 @@ toster = None
 @client.event
 async def on_ready():
     global toster
+    print('We have logged in as {0.user}'.format(client))
     toster = Toster('/data/toster_state.json')
     asyncio.create_task(update_presence())
 
